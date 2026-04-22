@@ -1,4 +1,5 @@
-streamlit==1.32.0
-firebase-admin==6.4.0
-qrcode==7.4.2
-streamlit-autorefresh==1.0.1
+streamlit
+firebase-admin
+qrcode
+Pillow
+streamlit-autorefresh
