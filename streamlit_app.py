@@ -281,3 +281,33 @@ with tab_stats:
             hide_index=True,
             use_container_width=True
         )
+
+        # --- NOUVEAU : TABLEAU DE DISTRIBUTION DES NOTES ---
+        st.markdown("---")
+        st.subheader("📈 Score Distribution")
+        st.write("Number of times each score (10 to 1) was given for each criterion.")
+        
+        # Initialisation de la structure de données pour la distribution
+        dist_data = []
+        scores_list = list(range(10, 0, -1)) # Liste décroissante de 10 à 1
+        
+        # On boucle sur nos 3 critères principaux
+        for col_id, col_label in [("creativity", "🎨 Creativity"), ("combativity", "🥊 Combativity"), ("driving", "🏎️ Driving")]:
+            # On compte le nombre d'occurrences pour chaque note
+            counts = df[col_id].value_counts()
+            
+            # On crée la ligne pour le tableau
+            row_data = {"Criterion": col_label}
+            for score in scores_list:
+                row_data[str(score)] = int(counts.get(score, 0)) # 0 par défaut si la note n'a jamais été donnée
+                
+            dist_data.append(row_data)
+            
+        # Création et affichage du DataFrame de distribution
+        dist_df = pd.DataFrame(dist_data)
+        
+        st.dataframe(
+            dist_df,
+            hide_index=True,
+            use_container_width=True
+        )
