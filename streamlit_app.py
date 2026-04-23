@@ -233,52 +233,45 @@ with tab_stats:
         df = pd.DataFrame(all_global_ratings)
         
         # Grouper par circuit et calculer la moyenne
+        # Suppression du décompte des votes
         stats_df = df.groupby('track').agg(
-            Votes=('player', 'count'),
+            Total=('total', 'mean'),
             Creativity=('creativity', 'mean'),
             Combativity=('combativity', 'mean'),
-            Driving=('driving', 'mean'),
-            Total=('total', 'mean')
+            Driving=('driving', 'mean')
         ).reset_index()
         
-        # Renommer la colonne track pour l'affichage
-        stats_df = stats_df.rename(columns={'track': 'Track Name'})
+        # Réorganisation des colonnes et renommage direct dans le DataFrame
+        stats_df = stats_df[['track', 'Total', 'Creativity', 'Combativity', 'Driving']]
+        stats_df = stats_df.rename(columns={
+            'track': 'Track',
+            'Total': '⭐ Total',
+            'Creativity': '🎨 Creat.',
+            'Combativity': '🥊 Comb.',
+            'Driving': '🏎️ Driv.'
+        })
         
-        # Configuration des colonnes optimisée pour le format Mobile (noms courts et emojis)
+        # Fonction de formatage pour respecter la norme régionale du Portugal (virgule au lieu de point)
+        def format_pt(val):
+            return f"{val:.2f}".replace('.', ',')
+
+        # Application du style Heatmap (Rouge -> Jaune -> Vert) avec Pandas Styler
+        styled_df = stats_df.style.background_gradient(
+            cmap='RdYlGn',
+            subset=['🎨 Creat.', '🥊 Comb.', '🏎️ Driv.'],
+            vmin=1, vmax=10
+        ).background_gradient(
+            cmap='RdYlGn',
+            subset=['⭐ Total'],
+            vmin=3, vmax=30
+        ).format(
+            format_pt,
+            subset=['⭐ Total', '🎨 Creat.', '🥊 Comb.', '🏎️ Driv.']
+        )
+        
+        # Affichage du dataframe stylisé
         st.dataframe(
-            stats_df,
-            column_config={
-                "Track Name": st.column_config.TextColumn("Track", width="medium"),
-                "Votes": st.column_config.NumberColumn("🗳️", help="Number of ratings"),
-                "Creativity": st.column_config.ProgressColumn(
-                    "🎨 Creat.",
-                    help="Average Creativity Rating",
-                    format="%.2f",
-                    min_value=0,
-                    max_value=10,
-                ),
-                "Combativity": st.column_config.ProgressColumn(
-                    "🥊 Comb.",
-                    help="Average Combativity Rating",
-                    format="%.2f",
-                    min_value=0,
-                    max_value=10,
-                ),
-                "Driving": st.column_config.ProgressColumn(
-                    "🏎️ Driv.",
-                    help="Average Driving Rating",
-                    format="%.2f",
-                    min_value=0,
-                    max_value=10,
-                ),
-                "Total": st.column_config.ProgressColumn(
-                    "⭐ Total",
-                    help="Average Total Score",
-                    format="%.2f",
-                    min_value=0,
-                    max_value=30,
-                ),
-            },
+            styled_df,
             hide_index=True,
             use_container_width=True
         )
