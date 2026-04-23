@@ -96,9 +96,12 @@ with tab_play:
         session_id = session_id_from_url
         is_mc = st.session_state.get('is_mc', False)
         
-        # Auto-refresh pour les joueurs
+        # Auto-refresh pour les joueurs (3 secondes)
         if not is_mc:
             st_autorefresh(interval=3000, key="datarefresh")
+        else:
+            # Auto-refresh lent (60 secondes) pour le MC pour maintenir la connexion Streamlit active
+            st_autorefresh(interval=60000, key="mc_keepalive")
 
         session_doc = db.collection('sessions').document(session_id).get()
         if not session_doc.exists:
@@ -109,6 +112,20 @@ with tab_play:
         current_track = session_data.get('current_track', 'Waiting...')
 
         st.write(f"**Session ID:** `{session_id}` | **MC:** {session_data['mc']}")
+        
+        # --- NOUVEAU : SYSTEME DE RECUPERATION DU STATUT MC ---
+        if not is_mc:
+            with st.expander("👑 Recover Master of Ceremony Status"):
+                st.write("Did your phone go to sleep and you lost your controls? Enter your MC name below to get them back.")
+                recover_name = st.text_input("Your MC Name:")
+                if st.button("Recover Status"):
+                    # On compare en ignorant les majuscules/minuscules et les espaces
+                    if recover_name.strip().lower() == session_data['mc'].strip().lower():
+                        st.session_state['is_mc'] = True
+                        st.rerun()
+                    else:
+                        st.error("This name doesn't match the session's Master of Ceremony!")
+                        
         st.markdown("---")
 
         # --- INTERFACE DU MAITRE DE CEREMONIE ---
