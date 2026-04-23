@@ -52,16 +52,16 @@ def update_current_track(session_id, track_name):
         'current_track': track_name
     })
 
-def submit_rating(session_id, player_name, track_name, creativity, difficulty, driving):
+def submit_rating(session_id, player_name, track_name, creativity, combativity, driving):
     doc_id = f"{track_name}_{player_name}"
     db.collection('sessions').document(session_id).collection('ratings').document(doc_id).set({
         'session_id': session_id,
         'player': player_name,
         'track': track_name,
         'creativity': creativity,
-        'difficulty': difficulty,
+        'combativity': combativity,
         'driving': driving,
-        'total': creativity + difficulty + driving
+        'total': creativity + combativity + driving
     })
     st.success(f"Rating saved for {track_name}!")
 
@@ -145,7 +145,7 @@ with tab_play:
             if not tracks_data:
                 st.warning("No tracks found in Firebase!")
             else:
-                # --- NOUVEAU: Filtres ---
+                # --- Filtres ---
                 col_filt1, col_filt2 = st.columns(2)
                 
                 with col_filt1:
@@ -181,7 +181,6 @@ with tab_play:
                 if not filtered_tracks:
                     st.info("No tracks match your current filters.")
                 else:
-                    # Le selectbox Streamlit permet de taper au clavier pour rechercher !
                     selected_track = st.selectbox("Choose a track (Type on your keyboard to search 🔍):", filtered_tracks)
                     
                     if st.button("Set Current Track & Broadcast", type="primary"):
@@ -198,14 +197,14 @@ with tab_play:
                 
                 st.write("Rate this track (1 = Bad, 10 = Masterpiece)")
                 creativity = st.slider("Creativity (Design, Visuals, Ideas)", 1, 10, 5)
-                difficulty = st.slider("Difficulty", 1, 10, 5)
+                combativity = st.slider("Combativity (Brawling, Items, CPU)", 1, 10, 5)
                 driving = st.slider("Driving (Pilotage, Fun to drive, Flow)", 1, 10, 5)
                 
                 submit = st.form_submit_button("Submit Rating 🏎️")
                 
                 if submit:
                     if player_name:
-                        submit_rating(session_id, player_name, current_track, creativity, difficulty, driving)
+                        submit_rating(session_id, player_name, current_track, creativity, combativity, driving)
                     else:
                         st.error("Please enter your name!")
                         
@@ -215,7 +214,7 @@ with tab_play:
             
             for r in ratings_ref:
                 data = r.to_dict()
-                st.write(f"**{data['player']}**: Total {data['total']}/30 (Cr: {data['creativity']}, Dif: {data['difficulty']}, Pil: {data['driving']})")
+                st.write(f"**{data['player']}**: Total {data['total']}/30 (Cr: {data['creativity']}, Comb: {data['combativity']}, Driv: {data['driving']})")
 
 # ==========================================
 # ONGLET 2 : STATISTIQUES GLOBALES
@@ -236,7 +235,7 @@ with tab_stats:
         stats_df = df.groupby('track').agg(
             Votes=('player', 'count'),
             Creativity=('creativity', 'mean'),
-            Difficulty=('difficulty', 'mean'),
+            Combativity=('combativity', 'mean'),
             Driving=('driving', 'mean'),
             Total=('total', 'mean')
         ).reset_index()
@@ -244,37 +243,35 @@ with tab_stats:
         # Renommer la colonne track pour l'affichage
         stats_df = stats_df.rename(columns={'track': 'Track Name'})
         
-        # Configuration des colonnes avec ProgressColumn pour les DataBars
-        # J'ai gardé les notes sous forme de nombres pour que ProgressColumn puisse les utiliser,
-        # et j'ai spécifié le format avec la virgule (ex: 8,50) pour respecter les paramètres du Portugal.
+        # Configuration des colonnes optimisée pour le format Mobile (noms courts et emojis)
         st.dataframe(
             stats_df,
             column_config={
-                "Track Name": st.column_config.TextColumn("Track Name", width="medium"),
-                "Votes": st.column_config.NumberColumn("Votes", help="Number of ratings"),
+                "Track Name": st.column_config.TextColumn("Track", width="medium"),
+                "Votes": st.column_config.NumberColumn("🗳️", help="Number of ratings"),
                 "Creativity": st.column_config.ProgressColumn(
-                    "Creativity",
+                    "🎨 Creat.",
                     help="Average Creativity Rating",
                     format="%.2f",
                     min_value=0,
                     max_value=10,
                 ),
-                "Difficulty": st.column_config.ProgressColumn(
-                    "Difficulty",
-                    help="Average Difficulty Rating",
+                "Combativity": st.column_config.ProgressColumn(
+                    "🥊 Comb.",
+                    help="Average Combativity Rating",
                     format="%.2f",
                     min_value=0,
                     max_value=10,
                 ),
                 "Driving": st.column_config.ProgressColumn(
-                    "Driving",
+                    "🏎️ Driv.",
                     help="Average Driving Rating",
                     format="%.2f",
                     min_value=0,
                     max_value=10,
                 ),
                 "Total": st.column_config.ProgressColumn(
-                    "Total",
+                    "⭐ Total",
                     help="Average Total Score",
                     format="%.2f",
                     min_value=0,
