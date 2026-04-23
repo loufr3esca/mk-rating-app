@@ -4,3 +4,4 @@ qrcode
 Pillow
 streamlit-autorefresh
 pandas
+matplotlib
