@@ -3,3 +3,4 @@ firebase-admin
 qrcode
 Pillow
 streamlit-autorefresh
+pandas
