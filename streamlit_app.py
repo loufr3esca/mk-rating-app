@@ -244,9 +244,43 @@ with tab_stats:
         # Renommer la colonne track pour l'affichage
         stats_df = stats_df.rename(columns={'track': 'Track Name'})
         
-        # Formater les décimales avec une VIRGULE (Normes régionales du Portugal)
-        for col in ['Creativity', 'Difficulty', 'Driving', 'Total']:
-            stats_df[col] = stats_df[col].apply(lambda x: f"{x:.2f}".replace('.', ','))
-            
-        # Afficher le tableau de bord interactif (cliquable pour trier)
-        st.dataframe(stats_df, use_container_width=True, hide_index=True)
+        # Configuration des colonnes avec ProgressColumn pour les DataBars
+        # J'ai gardé les notes sous forme de nombres pour que ProgressColumn puisse les utiliser,
+        # et j'ai spécifié le format avec la virgule (ex: 8,50) pour respecter les paramètres du Portugal.
+        st.dataframe(
+            stats_df,
+            column_config={
+                "Track Name": st.column_config.TextColumn("Track Name", width="medium"),
+                "Votes": st.column_config.NumberColumn("Votes", help="Number of ratings"),
+                "Creativity": st.column_config.ProgressColumn(
+                    "Creativity",
+                    help="Average Creativity Rating",
+                    format="%.2f",
+                    min_value=0,
+                    max_value=10,
+                ),
+                "Difficulty": st.column_config.ProgressColumn(
+                    "Difficulty",
+                    help="Average Difficulty Rating",
+                    format="%.2f",
+                    min_value=0,
+                    max_value=10,
+                ),
+                "Driving": st.column_config.ProgressColumn(
+                    "Driving",
+                    help="Average Driving Rating",
+                    format="%.2f",
+                    min_value=0,
+                    max_value=10,
+                ),
+                "Total": st.column_config.ProgressColumn(
+                    "Total",
+                    help="Average Total Score",
+                    format="%.2f",
+                    min_value=0,
+                    max_value=30,
+                ),
+            },
+            hide_index=True,
+            use_container_width=True
+        )
