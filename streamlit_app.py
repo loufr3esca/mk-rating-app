@@ -64,7 +64,7 @@ def submit_rating(session_id, player_name, track_name, creativity, combativity, 
         'driving': driving,
         'total': creativity + combativity + driving
     })
-    st.success(f"Rating saved for {track_name}!")
+    # Le message de succès a été retiré ici car il est désormais géré par l'interface utilisateur
 
 # --- 5. INTERFACE UTILISATEUR ---
 st.title("🏎️ MK Deluxe X - Rater")
@@ -186,28 +186,44 @@ with tab_play:
                     
                     if st.button("Set Current Track & Broadcast", type="primary"):
                         update_current_track(session_id, selected_track)
-                        st.success(f"Track updated to {selected_track}!")
+                        # On réinitialise l'état de vote du MC pour le nouveau circuit
+                        st.session_state[f"voted_{session_id}_{selected_track}"] = False
                         st.rerun()
 
         # --- INTERFACE DES JOUEURS (ET DU MC POUR VOTER) ---
         st.subheader(f"🍄 Current Track: **{current_track}**")
         
         if current_track != 'Waiting for MC to choose...':
-            with st.form("rating_form"):
-                player_name = st.text_input("Your Name:", value=session_data['mc'] if is_mc else "")
-                
-                st.write("Rate this track (1 = Bad, 10 = Masterpiece)")
-                creativity = st.slider("Creativity (Design, Visuals, Ideas)", 1, 10, 5)
-                combativity = st.slider("Combativity (Brawling, Items, CPU)", 1, 10, 5)
-                driving = st.slider("Driving (Pilotage, Fun to drive, Flow)", 1, 10, 5)
-                
-                submit = st.form_submit_button("Submit Rating 🏎️")
-                
-                if submit:
-                    if player_name:
-                        submit_rating(session_id, player_name, current_track, creativity, combativity, driving)
-                    else:
-                        st.error("Please enter your name!")
+            # Clé unique pour vérifier si l'utilisateur a déjà voté pour CE circuit dans CETTE session
+            voted_key = f"voted_{session_id}_{current_track}"
+            
+            if not st.session_state.get(voted_key, False):
+                with st.form("rating_form"):
+                    player_name = st.text_input("Your Name:", value=session_data['mc'] if is_mc else "")
+                    
+                    st.write("Rate this track (1 = Bad, 10 = Masterpiece)")
+                    creativity = st.slider("Creativity (Design, Visuals, Ideas)", 1, 10, 5)
+                    combativity = st.slider("Combativity (Brawling, Items, CPU)", 1, 10, 5)
+                    driving = st.slider("Driving (Pilotage, Fun to drive, Flow)", 1, 10, 5)
+                    
+                    submit = st.form_submit_button("Submit Rating 🏎️")
+                    
+                    if submit:
+                        if player_name:
+                            submit_rating(session_id, player_name, current_track, creativity, combativity, driving)
+                            st.session_state[voted_key] = True
+                            st.rerun() # Rafraîchit l'écran pour cacher le formulaire
+                        else:
+                            st.error("Please enter your name!")
+            else:
+                # Affichage post-vote
+                st.success("✅ Rating submitted successfully!")
+                if is_mc:
+                    if st.button("⏭️ Next Race", type="primary", use_container_width=True):
+                        update_current_track(session_id, 'Waiting for MC to choose...')
+                        st.rerun()
+                else:
+                    st.info("⏳ Waiting for the Master of Ceremony to choose the next track...")
                         
             # Afficher les scores actuels pour ce circuit
             st.markdown("### 🏆 Ratings for this track")
@@ -216,6 +232,9 @@ with tab_play:
             for r in ratings_ref:
                 data = r.to_dict()
                 st.write(f"**{data['player']}**: Total {data['total']}/30 (Cr: {data['creativity']}, Comb: {data['combativity']}, Driv: {data['driving']})")
+        else:
+            if not is_mc:
+                st.info("The Master of Ceremony is picking a track... Get ready!")
 
 # ==========================================
 # ONGLET 2 : STATISTIQUES GLOBALES
