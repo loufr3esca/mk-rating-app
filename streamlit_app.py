@@ -5,6 +5,7 @@ import qrcode
 from io import BytesIO
 from streamlit_autorefresh import st_autorefresh
 import pandas as pd
+import altair as alt
 
 # --- 1. CONFIGURATION DE LA PAGE ---
 st.set_page_config(page_title="MK Deluxe X Rater", page_icon="🏎️", layout="centered")
@@ -282,32 +283,48 @@ with tab_stats:
             use_container_width=True
         )
 
-        # --- NOUVEAU : TABLEAU DE DISTRIBUTION DES NOTES ---
+        # --- NOUVEAU : TABLEAU DE DISTRIBUTION DES NOTES (HEATMAP) ---
         st.markdown("---")
-        st.subheader("📈 Score Distribution")
+        st.subheader("📈 Score Distribution Heatmap")
         st.write("Number of times each score (10 to 1) was given for each criterion.")
         
-        # Initialisation de la structure de données pour la distribution
+        # Initialisation de la structure de données pour Altair
         dist_data = []
         scores_list = list(range(10, 0, -1)) # Liste décroissante de 10 à 1
         
         # On boucle sur nos 3 critères principaux
         for col_id, col_label in [("creativity", "🎨 Creativity"), ("combativity", "🥊 Combativity"), ("driving", "🏎️ Driving")]:
-            # On compte le nombre d'occurrences pour chaque note
             counts = df[col_id].value_counts()
-            
-            # On crée la ligne pour le tableau
-            row_data = {"Criterion": col_label}
             for score in scores_list:
-                row_data[str(score)] = int(counts.get(score, 0)) # 0 par défaut si la note n'a jamais été donnée
+                dist_data.append({
+                    "Criterion": col_label,
+                    "Score Given": str(score), # En string pour que l'axe soit discret et non continu
+                    "Number of Votes": int(counts.get(score, 0))
+                })
                 
-            dist_data.append(row_data)
-            
-        # Création et affichage du DataFrame de distribution
-        dist_df = pd.DataFrame(dist_data)
+        heatmap_df = pd.DataFrame(dist_data)
         
-        st.dataframe(
-            dist_df,
-            hide_index=True,
-            use_container_width=True
+        # Création de la Heatmap avec Altair
+        base = alt.Chart(heatmap_df).encode(
+            x=alt.X('Score Given:O', sort=[str(s) for s in scores_list], axis=alt.Axis(labelAngle=0)),
+            y=alt.Y('Criterion:N', title=None, sort=None),
         )
+
+        # Génération des blocs de couleur (nuances de bleu)
+        heatmap = base.mark_rect().encode(
+            color=alt.Color('Number of Votes:Q', scale=alt.Scale(scheme='blues'), legend=alt.Legend(title="Votes"))
+        )
+
+        # Ajout du chiffre exact par dessus la couleur (noir ou blanc selon le fond)
+        text = base.mark_text(baseline='middle').encode(
+            text='Number of Votes:Q',
+            color=alt.condition(
+                alt.datum['Number of Votes'] > heatmap_df['Number of Votes'].max() / 2,
+                alt.value('white'),
+                alt.value('black')
+            )
+        )
+
+        # Affichage du graphique
+        chart = (heatmap + text).properties(height=250)
+        st.altair_chart(chart, use_container_width=True)
